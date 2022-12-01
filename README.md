@@ -9,7 +9,7 @@ This project is a part of my #100daysofcode challenge 🚀. Be connected with me
 - User authentication 🔐
 - Users can create projects
 - Each project could have a list of code snippets related to the project
-- Projects could be either be public or private 🌍
+- Projects could be either public or private 🌍
 - The project owner can add members to the project
 - Code snippets can be upvoted and bookmarked 🔖
 
