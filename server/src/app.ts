@@ -10,10 +10,10 @@ connection
   .catch((err) => console.log("Cannot connect to database", err));
 
 // syncing tables
-connection
-  .sync()
-  .then(() => console.log("Tables synced"))
-  .catch((err) => console.log("Cannot sync tables", err));
+// connection
+//   .sync({ alter: true })
+//   .then(() => console.log("Tables synced"))
+//   .catch((err) => console.log("Cannot sync tables", err));
 
 const app = express();
 

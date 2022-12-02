@@ -1,5 +1,12 @@
 import connection from "../database/connection";
-import { ModelAttributes, DataTypes } from "sequelize";
+import {
+  ModelAttributes,
+  DataTypes,
+  Model,
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+} from "sequelize";
 
 const { STRING, UUID, UUIDV4, TEXT } = DataTypes;
 
@@ -8,6 +15,10 @@ const attributes: ModelAttributes = {
     type: UUID,
     defaultValue: UUIDV4,
     primaryKey: true,
+    allowNull: false,
+  },
+  name: {
+    type: STRING,
     allowNull: false,
   },
   username: {
@@ -26,4 +37,14 @@ const attributes: ModelAttributes = {
   },
 };
 
-export default connection.define("User", attributes);
+class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
+  declare id: CreationOptional<string>;
+  declare name: string;
+  declare username: string;
+  declare email: string;
+  declare password: string;
+}
+
+User.init(attributes, { sequelize: connection });
+
+export default User;

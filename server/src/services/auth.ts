@@ -3,8 +3,10 @@ import isAlphanumeric from "validator/lib/isAlphanumeric";
 import user from "../models/user";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
+import User from "../models/user";
 
 interface ISignupData {
+  name: string;
   username: string;
   email: string;
   password: string;
@@ -12,14 +14,14 @@ interface ISignupData {
 }
 
 export const validateData = (data: ISignupData) => {
-  const { username, email, password, passwordConfirm } = data;
+  const { name, username, email, password, passwordConfirm } = data;
   const validation = {
     isValid: true,
     message: "",
   };
 
   //   empty fields check
-  if (!(username && email && password && passwordConfirm)) {
+  if (!(name && username && email && password && passwordConfirm)) {
     validation.isValid = false;
     validation.message = "All fields are required";
   }
@@ -73,8 +75,9 @@ export const hashPassword = (password: string): string => {
 
 export const saveUserInDB = async (data: ISignupData, passwordHash: string) => {
   try {
-    const { username, email } = data;
+    const { name, username, email } = data;
     await user.create({
+      name,
       username,
       email,
       password: passwordHash,
@@ -84,5 +87,80 @@ export const saveUserInDB = async (data: ISignupData, passwordHash: string) => {
   } catch (error) {
     console.log("Cannot save user in DB", error);
     return false;
+  }
+};
+
+// validate login data
+export const validateLoginData = (
+  usernameOrEmail: string,
+  password: string
+) => {
+  let validation = {
+    isValid: false,
+    isEmail: false,
+    message: "",
+  };
+
+  // check empty fields
+  if (!(usernameOrEmail && password)) {
+    validation.message = "All fields are required";
+    return validation;
+  }
+
+  // email not username
+  if (isEmail(usernameOrEmail)) {
+    validation.isValid = true;
+    validation.isEmail = true;
+    return validation;
+  }
+  // not email but username
+  else if (isAlphanumeric(usernameOrEmail)) {
+    validation.isValid = true;
+    return validation;
+  }
+  // not valid email and username
+  else {
+    validation.message = "Invalid username or email";
+    return validation;
+  }
+};
+
+// check user by username or email
+export const checkUserByUsernameOrEmail = async (
+  isEmail: boolean,
+  usernameOrEmail: string
+) => {
+  interface IResult {
+    doesExist: boolean;
+    error: boolean;
+    user: User | null;
+  }
+
+  let result: IResult = {
+    doesExist: false,
+    error: false,
+    user: null,
+  };
+
+  try {
+    let existingUser: User | null;
+
+    if (isEmail) {
+      existingUser = await user.findOne({ where: { email: usernameOrEmail } });
+    } else {
+      existingUser = await user.findOne({
+        where: { username: usernameOrEmail },
+      });
+    }
+
+    if (existingUser) {
+      result.doesExist = true;
+      result.user = existingUser;
+    }
+  } catch (error) {
+    console.log("Cannot check existing user", error);
+    result.error = true;
+  } finally {
+    return result;
   }
 };
