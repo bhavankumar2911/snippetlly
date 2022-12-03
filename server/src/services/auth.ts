@@ -4,6 +4,9 @@ import user from "../models/user";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import User from "../models/user";
+import jwt from "jsonwebtoken";
+import IJWTPayload from "../interfaces/IJWTPayload";
+import RefreshToken from "../models/RefreshToken";
 
 interface ISignupData {
   name: string;
@@ -162,5 +165,23 @@ export const checkUserByUsernameOrEmail = async (
     result.error = true;
   } finally {
     return result;
+  }
+};
+
+// sign token
+export const signToken = (
+  secret: string,
+  payload: IJWTPayload,
+  expiresIn: number | string
+) => jwt.sign(payload, secret, { expiresIn });
+
+// save refresh token
+export const saveRefreshToken = async (userId: string, token: string) => {
+  try {
+    await RefreshToken.create({ userId, token });
+
+    return true;
+  } catch (error) {
+    return false;
   }
 };

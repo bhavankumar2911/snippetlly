@@ -9,8 +9,11 @@ import {
   saveUserInDB,
   validateLoginData,
   checkUserByUsernameOrEmail,
+  signToken,
+  saveRefreshToken,
 } from "../services/auth";
-import { Model } from "sequelize";
+import { TokenConfig } from "../config";
+import { sign } from "crypto";
 
 export const signup: RequestHandler = async (req, res, next) => {
   const data = req.body;
@@ -62,7 +65,38 @@ export const login: RequestHandler = async (req, res, next) => {
   if (!bcrypt.compareSync(password, user ? user.password : ""))
     return next(createHttpError.BadRequest("Invalid credentials"));
 
-  res.cookie("token", "value", { httpOnly: true });
-  res.cookie("jhghj", "jhgkh");
-  return res.json({ message: "logged in" });
+  // sign tokens
+  const accessToken = signToken(
+    TokenConfig.accessTokenSecret as string,
+    {
+      userId: user ? user.id : "",
+    },
+    30
+  );
+  const refreshToken = signToken(
+    TokenConfig.refreshTokenSecret as string,
+    {
+      userId: user ? user.id : "",
+    },
+    60
+  );
+
+  // save refresh token in db
+  if (!(await saveRefreshToken(user ? user.id : "", refreshToken)))
+    return next(createHttpError.InternalServerError());
+
+  // set token cookies
+  res.cookie("access_token", accessToken, {
+    httpOnly: true,
+    maxAge: 30 * 1000,
+  });
+  res.cookie("refresh_token", refreshToken, {
+    httpOnly: true,
+    maxAge: 60 * 1000,
+  });
+
+  return successfulResponse(res, {
+    loggedIn: true,
+    message: `Welcome ${user ? user.name : ""}!`,
+  });
 };

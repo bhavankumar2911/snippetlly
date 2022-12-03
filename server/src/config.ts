@@ -24,3 +24,20 @@ if (nodeEnv == "development") {
   dbConfig.dbPassword = process.env.DEV_DB_PASSWORD;
   dbConfig.dbHost = process.env.DEV_DB_HOST;
 }
+
+interface ITokenConfig {
+  accessTokenSecret: undefined | string;
+  refreshTokenSecret: undefined | string;
+}
+
+export let TokenConfig: ITokenConfig = {
+  accessTokenSecret: "",
+  refreshTokenSecret: "",
+};
+
+if (nodeEnv == "development") {
+  config();
+
+  TokenConfig.accessTokenSecret = process.env.DEV_ACCESS_TOKEN_SECRET;
+  TokenConfig.refreshTokenSecret = process.env.DEV_REFRESH_TOKEN_SECRET;
+}
