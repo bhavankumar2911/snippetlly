@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { login, signup } from "../controllers/auth";
+import { exchangeToken, login, signup } from "../controllers/auth";
+import auth from "../middlewares/auth";
 
 const authRouter = Router();
 
@@ -8,5 +9,8 @@ authRouter.post("/signup", signup);
 
 // login
 authRouter.post("/login", login);
+
+// exchange token
+authRouter.get("/exchange", exchangeToken);
 
 export default authRouter;

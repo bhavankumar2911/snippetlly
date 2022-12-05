@@ -178,10 +178,14 @@ export const signToken = (
 // save refresh token
 export const saveRefreshToken = async (userId: string, token: string) => {
   try {
-    await RefreshToken.create({ userId, token });
+    const user = await RefreshToken.findByPk(userId);
+
+    if (user) await RefreshToken.update({ token }, { where: { userId } });
+    else await RefreshToken.create({ userId, token });
 
     return true;
   } catch (error) {
+    console.log("Cannot save token in db", error);
     return false;
   }
 };

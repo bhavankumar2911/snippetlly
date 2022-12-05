@@ -10,9 +10,14 @@ RefreshToken.init(
   {
     userId: {
       type: DataTypes.STRING,
+      primaryKey: true,
+      unique: true,
+      allowNull: false,
     },
     token: {
       type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
     },
   },
   { sequelize: connection }

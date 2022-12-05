@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import createHttpError from "http-errors";
 import successfulResponse from "../helpers/successfulResponse";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import {
   validateData,
   checkExistingUser,
@@ -14,6 +15,8 @@ import {
 } from "../services/auth";
 import { TokenConfig } from "../config";
 import { sign } from "crypto";
+import IJWTPayload from "../interfaces/IJWTPayload";
+import RefreshToken from "../models/RefreshToken";
 
 export const signup: RequestHandler = async (req, res, next) => {
   const data = req.body;
@@ -71,14 +74,14 @@ export const login: RequestHandler = async (req, res, next) => {
     {
       userId: user ? user.id : "",
     },
-    30
+    60
   );
   const refreshToken = signToken(
     TokenConfig.refreshTokenSecret as string,
     {
       userId: user ? user.id : "",
     },
-    60
+    2 * 60
   );
 
   // save refresh token in db
@@ -88,15 +91,92 @@ export const login: RequestHandler = async (req, res, next) => {
   // set token cookies
   res.cookie("access_token", accessToken, {
     httpOnly: true,
-    maxAge: 30 * 1000,
+    maxAge: 60 * 1000,
   });
   res.cookie("refresh_token", refreshToken, {
     httpOnly: true,
-    maxAge: 60 * 1000,
+    maxAge: 2 * 60 * 1000,
   });
 
   return successfulResponse(res, {
     loggedIn: true,
     message: `Welcome ${user ? user.name : ""}!`,
   });
+};
+
+export const exchangeToken: RequestHandler = async (req, res, next) => {
+  const cookies = req.cookies;
+
+  if (!cookies.refresh_token || !cookies.access_token)
+    return next(createHttpError.Unauthorized("You are unauthorized"));
+
+  const { refresh_token, access_token } = cookies;
+
+  try {
+    jwt.verify(access_token, TokenConfig.accessTokenSecret as string);
+
+    return next(createHttpError.BadRequest());
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name == "TokenExpiredError") {
+        // verify refresh token
+        try {
+          const decoded = jwt.verify(
+            refresh_token,
+            TokenConfig.refreshTokenSecret as string
+          ) as IJWTPayload;
+          const { userId } = decoded;
+
+          // compare with the blacklist
+          let tokenRecord;
+          try {
+            tokenRecord = await RefreshToken.findByPk("userId");
+          } catch (error) {
+            return next(createHttpError.InternalServerError());
+          }
+
+          if (!tokenRecord || tokenRecord.token != refresh_token)
+            return next(createHttpError.Unauthorized("not same in db"));
+
+          // sign new tokens
+          const newAccessToken = signToken(
+            TokenConfig.accessTokenSecret as string,
+            {
+              userId,
+            },
+            60
+          );
+          const newRefreshToken = signToken(
+            TokenConfig.refreshTokenSecret as string,
+            {
+              userId,
+            },
+            2 * 60
+          );
+
+          // save refresh token in db
+          if (!(await saveRefreshToken(userId, newRefreshToken)))
+            return next(createHttpError.InternalServerError());
+
+          // set token cookies
+          res.cookie("access_token", newAccessToken, {
+            httpOnly: true,
+            maxAge: 60 * 1000,
+          });
+          res.cookie("refresh_token", newRefreshToken, {
+            httpOnly: true,
+            maxAge: 2 * 60 * 1000,
+          });
+
+          return successfulResponse(res, "Request successfully executed");
+        } catch (error) {
+          if (error instanceof Error) {
+            return next(createHttpError.Unauthorized("invalid refresh"));
+          }
+        }
+      } else {
+        return next(createHttpError.Unauthorized("invalid access"));
+      }
+    }
+  }
 };

@@ -6,8 +6,9 @@ import IJWTPayload from "../interfaces/IJWTPayload";
 import IRequestWithUser from "../interfaces/IRequestWithUser";
 import RefreshToken from "../models/RefreshToken";
 
-const auth: RequestHandler = (req: IRequestWithUser, res, next) => {
+const auth: RequestHandler = async (req: IRequestWithUser, res, next) => {
   const cookies = req.cookies;
+  let decoded: IJWTPayload = { userId: "" };
 
   //   token not present
   if (!cookies.access_token || !cookies.refresh_token)
@@ -15,17 +16,23 @@ const auth: RequestHandler = (req: IRequestWithUser, res, next) => {
 
   // verify access token
   try {
-    const decoded = jwt.verify(
+    const result = jwt.verify(
       cookies.access_token,
       TokenConfig.accessTokenSecret as string
     ) as IJWTPayload;
 
-    req.userId = decoded.userId;
+    decoded.userId = result.userId;
   } catch (error) {
     if (error instanceof Error) {
       if (error.name == "TokenExpiredError")
-        return next(createHttpError.Unauthorized("token expired"));
-      else return next(createHttpError.Unauthorized("You are unauthorized"));
+        return next(createHttpError.Unauthorized("Token Expired"));
+      else {
+        return next(
+          createHttpError.Unauthorized(
+            "You are unauthorized - invalid access token"
+          )
+        );
+      }
     }
   }
 
@@ -37,15 +44,28 @@ const auth: RequestHandler = (req: IRequestWithUser, res, next) => {
     ) as IJWTPayload;
 
     // check token in blacklist
-    const refreshToken = RefreshToken.findOne({
+    const refreshToken = await RefreshToken.findOne({
       where: { userId: decoded.userId },
     });
 
-    if (refreshToken != cookies.refresh_token)
-      return next(createHttpError.Unauthorized("You are unauthorized"));
+    if (refreshToken?.token != cookies.refresh_token) {
+      return next(
+        createHttpError.Unauthorized(
+          "You are unauthorized - refresh token not in db"
+        )
+      );
+    }
 
+    // authorized
+    req.userId = decoded.userId;
     return next();
   } catch (error) {
-    return next(createHttpError.Unauthorized("You are unauthorized"));
+    return next(
+      createHttpError.Unauthorized(
+        "You are unauthorized - invalid refresh token"
+      )
+    );
   }
 };
+
+export default auth;

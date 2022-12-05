@@ -2,6 +2,9 @@ import express, { ErrorRequestHandler } from "express";
 import createError from "http-errors";
 import connection from "./database/connection";
 import authRouter from "./routes/auth";
+import projectRouter from "./routes/project";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
 // check db connection
 connection
@@ -11,7 +14,7 @@ connection
 
 // syncing tables
 // connection
-//   .sync({ alter: true })
+//   .sync({ alter: true, force: true })
 //   .then(() => console.log("Tables synced"))
 //   .catch((err) => console.log("Cannot sync tables", err));
 
@@ -19,9 +22,14 @@ const app = express();
 
 // parse requests
 app.use(express.json());
+app.use(cookieParser());
+// app.use(cors({ credentials: true, origin: ["http://localhost:9000"] }));
 
 // api routes
 app.use("/api/auth", authRouter);
+
+// project routes
+app.use("/api/project", projectRouter);
 
 // 404 api request
 app.use((req, res, next) => {
