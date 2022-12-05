@@ -1,10 +1,12 @@
 import { Router } from "express";
 import auth from "../middlewares/auth";
+import { create, readOne } from "../controllers/Project";
 
 const router = Router();
 
-router.post("/", auth, (req, res) => {
-  res.send("project created");
-});
+router.post("/", auth, create);
+
+// read one project
+router.get("/:id", readOne);
 
 export default router;

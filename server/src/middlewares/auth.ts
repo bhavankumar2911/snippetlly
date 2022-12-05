@@ -25,13 +25,9 @@ const auth: RequestHandler = async (req: IRequestWithUser, res, next) => {
   } catch (error) {
     if (error instanceof Error) {
       if (error.name == "TokenExpiredError")
-        return next(createHttpError.Unauthorized("Token Expired"));
+        return next(createHttpError.Unauthorized(error.name));
       else {
-        return next(
-          createHttpError.Unauthorized(
-            "You are unauthorized - invalid access token"
-          )
-        );
+        return next(createHttpError.Unauthorized("You are unauthorized"));
       }
     }
   }
@@ -49,22 +45,14 @@ const auth: RequestHandler = async (req: IRequestWithUser, res, next) => {
     });
 
     if (refreshToken?.token != cookies.refresh_token) {
-      return next(
-        createHttpError.Unauthorized(
-          "You are unauthorized - refresh token not in db"
-        )
-      );
+      return next(createHttpError.Unauthorized("You are unauthorized"));
     }
 
     // authorized
     req.userId = decoded.userId;
     return next();
   } catch (error) {
-    return next(
-      createHttpError.Unauthorized(
-        "You are unauthorized - invalid refresh token"
-      )
-    );
+    return next(createHttpError.Unauthorized("You are unauthorized"));
   }
 };
 

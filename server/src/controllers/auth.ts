@@ -14,7 +14,6 @@ import {
   saveRefreshToken,
 } from "../services/auth";
 import { TokenConfig } from "../config";
-import { sign } from "crypto";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import RefreshToken from "../models/RefreshToken";
 
@@ -74,14 +73,14 @@ export const login: RequestHandler = async (req, res, next) => {
     {
       userId: user ? user.id : "",
     },
-    60
+    30 * 60
   );
   const refreshToken = signToken(
     TokenConfig.refreshTokenSecret as string,
     {
       userId: user ? user.id : "",
     },
-    2 * 60
+    7 * 24 * 60 * 60
   );
 
   // save refresh token in db
@@ -91,11 +90,11 @@ export const login: RequestHandler = async (req, res, next) => {
   // set token cookies
   res.cookie("access_token", accessToken, {
     httpOnly: true,
-    maxAge: 60 * 1000,
+    maxAge: 30 * 60 * 1000,
   });
   res.cookie("refresh_token", refreshToken, {
     httpOnly: true,
-    maxAge: 2 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   return successfulResponse(res, {
@@ -130,13 +129,13 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
           // compare with the blacklist
           let tokenRecord;
           try {
-            tokenRecord = await RefreshToken.findByPk("userId");
+            tokenRecord = await RefreshToken.findByPk(userId);
           } catch (error) {
             return next(createHttpError.InternalServerError());
           }
 
           if (!tokenRecord || tokenRecord.token != refresh_token)
-            return next(createHttpError.Unauthorized("not same in db"));
+            return next(createHttpError.Unauthorized("You are unauthorized"));
 
           // sign new tokens
           const newAccessToken = signToken(
@@ -144,14 +143,14 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
             {
               userId,
             },
-            60
+            30 * 60
           );
           const newRefreshToken = signToken(
             TokenConfig.refreshTokenSecret as string,
             {
               userId,
             },
-            2 * 60
+            7 * 24 * 60 * 60
           );
 
           // save refresh token in db
@@ -161,21 +160,21 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
           // set token cookies
           res.cookie("access_token", newAccessToken, {
             httpOnly: true,
-            maxAge: 60 * 1000,
+            maxAge: 30 * 60 * 1000,
           });
           res.cookie("refresh_token", newRefreshToken, {
             httpOnly: true,
-            maxAge: 2 * 60 * 1000,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
           });
 
           return successfulResponse(res, "Request successfully executed");
         } catch (error) {
           if (error instanceof Error) {
-            return next(createHttpError.Unauthorized("invalid refresh"));
+            return next(createHttpError.Unauthorized("You are unauthorized"));
           }
         }
       } else {
-        return next(createHttpError.Unauthorized("invalid access"));
+        return next(createHttpError.Unauthorized("You are unauthorized"));
       }
     }
   }

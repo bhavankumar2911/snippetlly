@@ -1,12 +1,15 @@
 import isEmail from "validator/lib/isEmail";
 import isAlphanumeric from "validator/lib/isAlphanumeric";
-import user from "../models/user";
+import User from "../models/user";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
-import User from "../models/user";
 import jwt from "jsonwebtoken";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import RefreshToken from "../models/RefreshToken";
+import { Request } from "express";
+import IRequestWithUser from "../interfaces/IRequestWithUser";
+import { TokenConfig } from "../config";
+import ICheckIfAuthorResult from "../interfaces/ICheckIfAuthorResult";
 
 interface ISignupData {
   name: string;
@@ -55,7 +58,7 @@ export const checkExistingUser = async (username: string, email: string) => {
   };
 
   try {
-    const existingUser = await user.findOne({
+    const existingUser = await User.findOne({
       where: { [Op.or]: [{ username }, { email }] },
     });
 
@@ -79,7 +82,7 @@ export const hashPassword = (password: string): string => {
 export const saveUserInDB = async (data: ISignupData, passwordHash: string) => {
   try {
     const { name, username, email } = data;
-    await user.create({
+    await User.create({
       name,
       username,
       email,
@@ -149,9 +152,9 @@ export const checkUserByUsernameOrEmail = async (
     let existingUser: User | null;
 
     if (isEmail) {
-      existingUser = await user.findOne({ where: { email: usernameOrEmail } });
+      existingUser = await User.findOne({ where: { email: usernameOrEmail } });
     } else {
-      existingUser = await user.findOne({
+      existingUser = await User.findOne({
         where: { username: usernameOrEmail },
       });
     }
