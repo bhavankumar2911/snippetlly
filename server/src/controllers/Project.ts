@@ -6,7 +6,7 @@ import models from "../models";
 import jwt from "jsonwebtoken";
 import { TokenConfig } from "../config";
 import IJWTPayload from "../interfaces/IJWTPayload";
-import User from "../models/user";
+import User from "../models/User";
 
 // create new project
 export const create: RequestHandler = async (

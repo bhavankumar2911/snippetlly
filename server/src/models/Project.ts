@@ -8,7 +8,7 @@ import {
   DataTypes,
 } from "sequelize";
 import connection from "../database/connection";
-import User from "./user";
+import User from "./User";
 
 class Project extends Model<
   InferAttributes<Project>,

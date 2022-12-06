@@ -1,4 +1,4 @@
-import User from "./user";
+import User from "./User";
 import Project from "./Project";
 import RefreshToken from "./RefreshToken";
 

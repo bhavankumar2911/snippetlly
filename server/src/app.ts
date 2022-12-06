@@ -23,7 +23,7 @@ const app = express();
 // parse requests
 app.use(express.json());
 app.use(cookieParser());
-// app.use(cors({ credentials: true, origin: ["http://localhost:9000"] }));
+app.use(cors({ credentials: true, origin: ["http://localhost:3000"] }));
 
 // api routes
 app.use("/api/auth", authRouter);

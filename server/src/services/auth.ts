@@ -1,15 +1,11 @@
 import isEmail from "validator/lib/isEmail";
 import isAlphanumeric from "validator/lib/isAlphanumeric";
-import User from "../models/user";
+import User from "../models/User";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import RefreshToken from "../models/RefreshToken";
-import { Request } from "express";
-import IRequestWithUser from "../interfaces/IRequestWithUser";
-import { TokenConfig } from "../config";
-import ICheckIfAuthorResult from "../interfaces/ICheckIfAuthorResult";
 
 interface ISignupData {
   name: string;
