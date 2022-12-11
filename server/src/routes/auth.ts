@@ -13,4 +13,7 @@ authRouter.post("/login", login);
 // exchange token
 authRouter.get("/exchange", exchangeToken);
 
+// check authentication
+authRouter.get("/", auth);
+
 export default authRouter;

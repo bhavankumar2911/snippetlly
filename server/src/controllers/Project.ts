@@ -20,8 +20,6 @@ export const create: RequestHandler = async (
   if (!name)
     return next(createHttpError.UnprocessableEntity("Project requires a name"));
 
-  console.log("ispublic------>", typeof isPublic);
-
   if (typeof isPublic != "boolean")
     return next(
       createHttpError.UnprocessableEntity(
@@ -38,11 +36,12 @@ export const create: RequestHandler = async (
     });
     await project.addUser(req.userId);
 
-    return successfulResponse(res, "Project created");
+    return successfulResponse(res, {
+      message: "Project created",
+      data: project,
+    });
   } catch (error) {
-    console.log(error);
-
-    return next(createHttpError.InternalServerError("here"));
+    return next(createHttpError.InternalServerError());
   }
 };
 
@@ -55,10 +54,9 @@ export const readOne: RequestHandler = async (req, res, next) => {
       include: User,
     });
 
-    if (!project)
-      return next(createHttpError.NotFound("Project not found here"));
+    if (!project) return next(createHttpError.NotFound("Project not found"));
 
-    if (project.isPublic) return successfulResponse(res, { project });
+    if (project.isPublic) return successfulResponse(res, { data: project });
 
     const cookies = req.cookies;
     if (!cookies.access_token || !cookies.refresh_token)
@@ -91,7 +89,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
         if (!memberIdsOfProject.includes(decoded.userId))
           return next(createHttpError.Unauthorized());
 
-        return successfulResponse(res, { project });
+        return successfulResponse(res, { data: project });
       } catch (error) {
         return next(createHttpError.Unauthorized());
       }

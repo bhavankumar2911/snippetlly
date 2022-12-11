@@ -12,7 +12,7 @@ interface IAlert {
   show: boolean;
 }
 
-const Signup: React.FC = () => {
+const Login: React.FC = () => {
   const [alert, setAlert] = useState<IAlert>({
     message: "",
     type: undefined,
@@ -20,24 +20,27 @@ const Signup: React.FC = () => {
   });
 
   const [form, setForm] = useState({
-    name: "",
-    username: "",
-    email: "",
+    usernameOrEmail: "",
     password: "",
-    passwordConfirm: "",
   });
 
   const router = useRouter();
 
-  const handleSignup: React.FormEventHandler<HTMLFormElement> = async (e) => {
+  const handleLogin: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
 
     try {
-      await axios.post(`${Config.apiHost}/auth/signup`, {
-        ...form,
-      });
+      const res = await axios.post(
+        `${Config.apiHost}/auth/login`,
+        {
+          ...form,
+        },
+        { withCredentials: true }
+      );
 
-      router.push("/login");
+      if (res.status == 200) {
+        router.push(`/profile`);
+      }
     } catch (error) {
       if (error instanceof AxiosError) {
         if (error.response) {
@@ -83,9 +86,9 @@ const Signup: React.FC = () => {
               }}
             >
               <center>
-                <Title level={3}>Create Account</Title>
+                <Title level={3}>Welcome back!</Title>
               </center>
-              <form onSubmit={handleSignup}>
+              <form onSubmit={handleLogin}>
                 <Space
                   direction="vertical"
                   size="middle"
@@ -96,30 +99,12 @@ const Signup: React.FC = () => {
                   )}
                   <Input
                     size="large"
-                    placeholder="Full name"
+                    placeholder="Username or Email"
                     type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                  <Input
-                    size="large"
-                    placeholder="Username"
-                    type="text"
-                    name="username"
-                    value={form.username}
+                    name="usernameOrEmail"
+                    value={form.usernameOrEmail}
                     onChange={(e) =>
-                      setForm({ ...form, username: e.target.value })
-                    }
-                  />
-                  <Input
-                    size="large"
-                    placeholder="Email"
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
+                      setForm({ ...form, usernameOrEmail: e.target.value })
                     }
                   />
                   <Input
@@ -132,18 +117,8 @@ const Signup: React.FC = () => {
                       setForm({ ...form, password: e.target.value })
                     }
                   />
-                  <Input
-                    size="large"
-                    placeholder="Repeat Password"
-                    type="password"
-                    name="passwordConfirm"
-                    value={form.passwordConfirm}
-                    onChange={(e) =>
-                      setForm({ ...form, passwordConfirm: e.target.value })
-                    }
-                  />
                   <Button type="primary" htmlType="submit" size="large" block>
-                    Sign up
+                    Login
                   </Button>
                   <span
                     style={{
@@ -153,9 +128,9 @@ const Signup: React.FC = () => {
                     }}
                   >
                     <Space>
-                      <Text>Already have an account?</Text>
-                      <Link href="/login">
-                        <Text style={{ color: "#1677ff" }}>Login</Text>
+                      <Text>New user?</Text>
+                      <Link href="/signup">
+                        <Text style={{ color: "#1677ff" }}>Create Account</Text>
                       </Link>
                     </Space>
                   </span>
@@ -169,4 +144,4 @@ const Signup: React.FC = () => {
   );
 };
 
-export default Signup;
+export default Login;
