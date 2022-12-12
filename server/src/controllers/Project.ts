@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { TokenConfig } from "../config";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import User from "../models/User";
+import Project from "../models/Project";
 
 // create new project
 export const create: RequestHandler = async (
@@ -104,6 +105,33 @@ export const readOne: RequestHandler = async (req, res, next) => {
   } catch (error) {
     console.log(error);
 
+    return next(createHttpError.InternalServerError());
+  }
+};
+
+// delete one project
+export const deleteOne: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { userId } = req;
+  const { id } = req.params;
+
+  try {
+    const project = await Project.findByPk(id);
+
+    if (!project)
+      return next(createHttpError.BadRequest("Project doesn't exist"));
+
+    if (userId != project.authorId) return next(createHttpError.Unauthorized());
+
+    const result = await Project.destroy({ where: { id } });
+
+    console.log(result);
+
+    return successfulResponse(res, { message: "Project deleted" });
+  } catch (error) {
     return next(createHttpError.InternalServerError());
   }
 };
