@@ -1,11 +1,13 @@
-import { EyeFilled, PlusOutlined } from "@ant-design/icons";
+import { DeleteFilled, EyeFilled, PlusOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
   Empty,
   Input,
   List,
+  message,
   Modal,
+  Popconfirm,
   Space,
   Switch,
   Typography,
@@ -34,6 +36,8 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
     description: "",
     isPublic: true,
   });
+  const [open, setOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const router = useRouter();
 
   const showModal = () => {
@@ -81,6 +85,28 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
       type: null,
       message: null,
     });
+  };
+
+  // delete project
+  const deleteProject = async (id: string) => {
+    setConfirmLoading(true);
+
+    const {
+      responseOK,
+      noResponse,
+      notAuthorized,
+      message: resMessage,
+    } = await API.sendRequest("delete", `/project/${id}`, true);
+
+    if (noResponse) message.warning(resMessage);
+    else if (notAuthorized) router.push("/login");
+    else if (responseOK) {
+      message.success(resMessage);
+      setProjects([...projects.filter((project) => project.id != id)]);
+    } else message.warning(resMessage);
+
+    setOpen(false);
+    setConfirmLoading(false);
   };
 
   return (
@@ -184,9 +210,20 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
             renderItem={(project) => (
               <List.Item>
                 <Typography.Text>{project.name}</Typography.Text>
-                <Button type="link" icon={<EyeFilled />}>
-                  View
-                </Button>
+                <span>
+                  <Button type="link" icon={<EyeFilled />}>
+                    View
+                  </Button>
+                  <Popconfirm
+                    title="Are you sure to delete this project?"
+                    onConfirm={() => deleteProject(project.id)}
+                    onCancel={() => setOpen(false)}
+                    okText="Yes"
+                    cancelText="No"
+                  >
+                    <Button type="text" icon={<DeleteFilled />} danger />
+                  </Popconfirm>
+                </span>
               </List.Item>
             )}
           />
