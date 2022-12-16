@@ -49,10 +49,20 @@ export const create: RequestHandler = async (
 // read a project
 export const readOne: RequestHandler = async (req, res, next) => {
   const { id } = req.params;
+  // const cookies=req.cookies;
   try {
+    // checking members of the project
+    // if(!cookies.access_token||!cookies.refresh_token){
+
+    // }
     const project = await models.Project.findOne({
       where: { id },
-      include: User,
+      include: [
+        {
+          model: User,
+          attributes: ["id", "email", "name", "username"],
+        },
+      ],
     });
 
     if (!project) return next(createHttpError.NotFound("Project not found"));
@@ -61,7 +71,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
 
     const cookies = req.cookies;
     if (!cookies.access_token || !cookies.refresh_token)
-      return next(createHttpError.Unauthorized());
+      return next(createHttpError.Forbidden());
 
     const { access_token, refresh_token } = cookies;
 
@@ -79,7 +89,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
         ) as IJWTPayload;
 
         if (accessTokenDecoded.userId != decoded.userId)
-          return next(createHttpError.Unauthorized());
+          return next(createHttpError.Forbidden());
 
         const membersOfProject = await project.getUsers();
 
@@ -88,18 +98,18 @@ export const readOne: RequestHandler = async (req, res, next) => {
         );
 
         if (!memberIdsOfProject.includes(decoded.userId))
-          return next(createHttpError.Unauthorized());
+          return next(createHttpError.Forbidden());
 
         return successfulResponse(res, { data: project });
       } catch (error) {
-        return next(createHttpError.Unauthorized());
+        return next(createHttpError.Forbidden());
       }
     } catch (error) {
       if (error instanceof Error) {
         if (error.name == "TokenExpiredError")
           return next(createHttpError.Unauthorized(error.name));
 
-        return next(createHttpError.Unauthorized());
+        return next(createHttpError.Forbidden());
       }
     }
   } catch (error) {

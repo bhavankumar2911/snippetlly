@@ -8,6 +8,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Switch,
   Typography,
@@ -38,6 +39,8 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
   });
   const [open, setOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [filteredProjects, setFilteredProjects] = useState([...projects]);
+  const [filter, setFilter] = useState("all");
   const router = useRouter();
 
   const showModal = () => {
@@ -47,7 +50,6 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
   const createProject: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     setCreatingProject(true);
-    // setIsModalOpen(false);
     console.log(project);
 
     const apiResponse = await API.sendRequest("post", "/project", true, {
@@ -75,6 +77,12 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
       });
       setIsModalOpen(false);
       setProjects([apiResponse.data, ...projects]);
+      if (
+        (apiResponse.data.isPublic && filter == "public") ||
+        (!apiResponse.data.isPublic && filter == "private") ||
+        filter == "all"
+      )
+        setFilteredProjects([apiResponse.data, ...filteredProjects]);
     }
   };
 
@@ -103,11 +111,25 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
     else if (responseOK) {
       message.success(resMessage);
       setProjects([...projects.filter((project) => project.id != id)]);
+      setFilteredProjects([
+        ...filteredProjects.filter((project) => project.id != id),
+      ]);
     } else message.warning(resMessage);
 
     setOpen(false);
     setConfirmLoading(false);
   };
+
+  const filterProjects = (filter: string) => {
+    setFilter(filter);
+    if (filter == "public")
+      setFilteredProjects([...projects.filter((project) => project.isPublic)]);
+    else if (filter == "private")
+      setFilteredProjects([...projects.filter((project) => !project.isPublic)]);
+    else setFilteredProjects([...projects]);
+  };
+
+  console.log(filteredProjects.length);
 
   return (
     <section
@@ -199,19 +221,52 @@ const Projects: React.FC<Props> = ({ projects, setProjects }) => {
           marginTop: "2rem",
         }}
       >
-        {projects.length == 0 && (
-          <Empty description="You haven't created any projects yet!" />
+        <div>
+          <center>
+            <Select
+              defaultValue="all"
+              style={{ width: "200px" }}
+              onChange={filterProjects}
+              options={[
+                {
+                  value: "all",
+                  label: "All",
+                },
+                {
+                  value: "private",
+                  label: "Private",
+                },
+                {
+                  value: "public",
+                  label: "Public",
+                },
+              ]}
+            />
+          </center>
+        </div>
+
+        {filteredProjects.length == 0 && (
+          <Empty
+            description={`You don't have any ${
+              filter == "all" ? "" : filter
+            } projects`}
+            style={{ marginTop: "2rem" }}
+          />
         )}
 
-        {projects.length > 0 && (
+        {filteredProjects.length > 0 && (
           <List
             itemLayout="horizontal"
-            dataSource={projects}
+            dataSource={filteredProjects}
             renderItem={(project) => (
               <List.Item>
                 <Typography.Text>{project.name}</Typography.Text>
                 <span>
-                  <Button type="link" icon={<EyeFilled />}>
+                  <Button
+                    type="link"
+                    icon={<EyeFilled />}
+                    href={`/project/${project.id}`}
+                  >
                     View
                   </Button>
                   <Popconfirm

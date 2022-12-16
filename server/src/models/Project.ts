@@ -1,4 +1,7 @@
-import { BelongsToManyAddAssociationMixin } from "sequelize";
+import {
+  BelongsToManyAddAssociationMixin,
+  HasManyGetAssociationsMixin,
+} from "sequelize";
 import { BelongsToManyGetAssociationsMixin } from "sequelize";
 import {
   CreationOptional,
@@ -8,6 +11,7 @@ import {
   DataTypes,
 } from "sequelize";
 import connection from "../database/connection";
+import Snippet from "./Snippet";
 import User from "./User";
 
 class Project extends Model<
@@ -22,6 +26,7 @@ class Project extends Model<
 
   declare addUser: BelongsToManyAddAssociationMixin<User, string>;
   declare getUsers: BelongsToManyGetAssociationsMixin<User>;
+  declare getSnippets: HasManyGetAssociationsMixin<Snippet>;
 }
 
 Project.init(
