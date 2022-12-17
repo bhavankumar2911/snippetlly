@@ -2,16 +2,18 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import API from "../../helpers/API";
 import Oops from "../../components/helpers/Oops";
-import { Layout, Menu, MenuProps } from "antd";
+import { Layout, Menu, MenuProps, Typography } from "antd";
 import { CodeOutlined, UserOutlined } from "@ant-design/icons";
 import CodeSnippets from "../../components/project/CodeSnippets";
 import Members from "../../components/project/Members";
+import FullPageLoader from "../../components/helpers/FullPageLoader";
 
 const Project: React.FC = () => {
   const [error, setError] = useState<null | string>(null);
   const router = useRouter();
-  const [project, setProject] = useState(null);
-  const [navComponent, setNavComponent] = useState("snippets");
+  const [project, setProject] = useState<any>(null);
+  const [navComponent, setNavComponent] = useState("members");
+  const [loading, setLoading] = useState(true);
   const id = router.query.id;
 
   useEffect(() => {
@@ -23,8 +25,13 @@ const Project: React.FC = () => {
           true
         );
 
-        if (responseOK) setProject(data);
-        else setError(message);
+        setLoading(false);
+
+        if (responseOK) {
+          console.log("project", data);
+
+          setProject(data);
+        } else setError(message);
       })();
     }
   }, [id]);
@@ -35,8 +42,10 @@ const Project: React.FC = () => {
 
   return (
     <main>
-      {error && <Oops message={error} />}
-      {!error && (
+      {/* loading */}
+      {loading && <FullPageLoader loadingText="Loading project..." />}
+      {!loading && error && <Oops message={error} />}
+      {!loading && !error && project && id && (
         <Layout>
           <Layout.Sider
             theme="light"
@@ -46,7 +55,7 @@ const Project: React.FC = () => {
               style={{ border: "none" }}
               onClick={navSelect}
               mode="inline"
-              defaultSelectedKeys={["snippets"]}
+              defaultSelectedKeys={["members"]}
               items={[
                 {
                   key: "snippets",
@@ -62,11 +71,25 @@ const Project: React.FC = () => {
             />
           </Layout.Sider>
           <Layout.Content>
+            {/* project */}
+            <center>
+              <Typography.Title style={{ marginTop: "2rem" }}>
+                {project.project.name}
+              </Typography.Title>
+            </center>
+
             {/* code snippets */}
             {navComponent == "snippets" && <CodeSnippets />}
 
             {/* members */}
-            {navComponent == "members" && <Members />}
+            {navComponent == "members" && (
+              <Members
+                project={project}
+                isAuthor={project.isAuthor}
+                setProject={setProject}
+                id={id as string}
+              />
+            )}
           </Layout.Content>
         </Layout>
       )}

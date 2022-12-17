@@ -1,4 +1,4 @@
-import { RequestHandler } from "express";
+import { Request, RequestHandler } from "express";
 import createHttpError from "http-errors";
 import successfulResponse from "../helpers/successfulResponse";
 import IRequestWithUser from "../interfaces/IRequestWithUser";
@@ -8,6 +8,9 @@ import { TokenConfig } from "../config";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import User from "../models/User";
 import Project from "../models/Project";
+import Snippet from "../models/Snippet";
+import RefreshToken from "../models/RefreshToken";
+import { saveRefreshToken, signToken } from "../services/auth";
 
 // create new project
 export const create: RequestHandler = async (
@@ -47,39 +50,242 @@ export const create: RequestHandler = async (
 };
 
 // read a project
-export const readOne: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  // const cookies=req.cookies;
-  try {
-    // checking members of the project
-    // if(!cookies.access_token||!cookies.refresh_token){
+// export const readOne: RequestHandler = async (req, res, next) => {
+//   const { id } = req.params;
+//   // const cookies=req.cookies;
+//   try {
+//     // checking members of the project
+//     // if(!cookies.access_token||!cookies.refresh_token){
 
-    // }
-    const project = await models.Project.findOne({
-      where: { id },
+//     // }
+//     const project = await models.Project.findOne({
+//       where: { id },
+//       include: [
+//         {
+//           model: User,
+//           attributes: ["id", "email", "name", "username"],
+//         },
+//       ],
+//     });
+
+//     if (!project) return next(createHttpError.NotFound("Project not found"));
+
+//     if (project.isPublic) return successfulResponse(res, { data: project });
+
+//     const cookies = req.cookies;
+//     if (!cookies.access_token || !cookies.refresh_token)
+//       return next(createHttpError.Forbidden());
+
+//     const { access_token, refresh_token } = cookies;
+
+//     try {
+//       const accessTokenDecoded = jwt.verify(
+//         access_token,
+//         TokenConfig.accessTokenSecret as string
+//       ) as IJWTPayload;
+
+//       // verify refresh token
+//       try {
+//         const decoded = jwt.verify(
+//           refresh_token,
+//           TokenConfig.refreshTokenSecret as string
+//         ) as IJWTPayload;
+
+//         if (accessTokenDecoded.userId != decoded.userId)
+//           return next(createHttpError.Forbidden());
+
+//         const membersOfProject = await project.getUsers();
+
+//         const memberIdsOfProject = membersOfProject.map(
+//           (member) => member.toJSON().id
+//         );
+
+//         if (!memberIdsOfProject.includes(decoded.userId))
+//           return next(createHttpError.Forbidden());
+
+//         return successfulResponse(res, { data: project });
+//       } catch (error) {
+//         return next(createHttpError.Forbidden());
+//       }
+//     } catch (error) {
+//       if (error instanceof Error) {
+//         if (error.name == "TokenExpiredError")
+//           return next(createHttpError.Unauthorized(error.name));
+
+//         return next(createHttpError.Forbidden());
+//       }
+//     }
+//   } catch (error) {
+//     console.log(error);
+
+//     return next(createHttpError.InternalServerError());
+//   }
+// };
+
+// read a project
+export const readOne: RequestHandler = async (req, res, next) => {
+  const cookies = req.cookies;
+  const { id } = req.params;
+  // let userId: null | string = null;
+
+  interface Response {
+    project: Project | null;
+    isAuthor: boolean;
+    isMember: boolean;
+  }
+
+  const response: Response = {
+    project: null,
+    isAuthor: false,
+    isMember: false,
+  };
+
+  // fetch projects
+  try {
+    const project = await Project.findByPk(id, {
       include: [
-        {
-          model: User,
-          attributes: ["id", "email", "name", "username"],
-        },
+        { model: Snippet },
+        { model: User, attributes: ["username", "name"] },
       ],
     });
 
-    if (!project) return next(createHttpError.NotFound("Project not found"));
+    if (!project) return next(createHttpError.NotFound());
 
-    if (project.isPublic) return successfulResponse(res, { data: project });
+    let projectMembers: User[] | string[] = await project.getUsers();
+    projectMembers = projectMembers.map((member) => member.id);
 
-    const cookies = req.cookies;
-    if (!cookies.access_token || !cookies.refresh_token)
-      return next(createHttpError.Forbidden());
+    const isPublic = project.isPublic;
 
-    const { access_token, refresh_token } = cookies;
+    if (!cookies.access_token || !cookies.refresh_token) {
+      if (!isPublic) {
+        return next(createHttpError.Forbidden());
+      } else {
+        response.isAuthor = false;
+        response.isMember = false;
+        response.project = project;
 
-    try {
-      const accessTokenDecoded = jwt.verify(
-        access_token,
-        TokenConfig.accessTokenSecret as string
-      ) as IJWTPayload;
+        return successfulResponse(res, { data: response });
+      }
+    } else {
+      const { access_token, refresh_token } = cookies;
+
+      // verify access token
+      try {
+        jwt.verify(
+          access_token,
+          TokenConfig.accessTokenSecret as string
+        ) as IJWTPayload;
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.name == "TokenExpiredError") {
+            // verify refresh token
+            try {
+              const decoded = jwt.verify(
+                cookies.refresh_token,
+                TokenConfig.refreshTokenSecret as string
+              ) as IJWTPayload;
+              const { userId } = decoded;
+
+              // compare with the blacklist
+              let tokenRecord;
+              try {
+                tokenRecord = await RefreshToken.findByPk(userId);
+              } catch (error) {
+                return next(createHttpError.InternalServerError());
+              }
+
+              console.log(tokenRecord?.toJSON(), cookies.refresh_token);
+
+              if (!tokenRecord || tokenRecord.token != cookies.refresh_token) {
+                if (!isPublic) {
+                  return next(createHttpError.Forbidden());
+                } else {
+                  response.isAuthor = false;
+                  response.isMember = false;
+                  response.project = project;
+
+                  return successfulResponse(res, { data: response });
+                }
+              }
+
+              // sign new tokens
+              const newAccessToken = signToken(
+                TokenConfig.accessTokenSecret as string,
+                {
+                  userId,
+                },
+                60
+              );
+              const newRefreshToken = signToken(
+                TokenConfig.refreshTokenSecret as string,
+                {
+                  userId,
+                },
+                2 * 60
+              );
+
+              // save refresh token in db
+              if (!(await saveRefreshToken(userId, newRefreshToken)))
+                return next(createHttpError.InternalServerError());
+
+              // set token cookies
+              res.cookie("access_token", newAccessToken, {
+                httpOnly: true,
+                maxAge: 2 * 60 * 1000,
+              });
+              res.cookie("refresh_token", newRefreshToken, {
+                httpOnly: true,
+                maxAge: 2 * 60 * 1000,
+              });
+
+              // authorized user
+              if (projectMembers.includes(userId)) {
+                response.isMember = true;
+
+                if (userId == project.authorId) {
+                  response.isAuthor = true;
+                }
+
+                response.project = project;
+
+                return successfulResponse(res, { data: response });
+              } else {
+                if (!isPublic) {
+                  return next(createHttpError.Forbidden());
+                } else {
+                  response.isAuthor = false;
+                  response.isMember = false;
+                  response.project = project;
+
+                  return successfulResponse(res, { data: response });
+                }
+              }
+            } catch (error) {
+              if (error instanceof Error) {
+                if (!isPublic) {
+                  return next(createHttpError.Forbidden());
+                } else {
+                  response.isAuthor = false;
+                  response.isMember = false;
+                  response.project = project;
+
+                  return successfulResponse(res, { data: response });
+                }
+              }
+            }
+          } else {
+            if (!isPublic) {
+              return next(createHttpError.Forbidden());
+            } else {
+              response.isAuthor = false;
+              response.isMember = false;
+              response.project = project;
+
+              return successfulResponse(res, { data: response });
+            }
+          }
+        }
+      }
 
       // verify refresh token
       try {
@@ -87,34 +293,60 @@ export const readOne: RequestHandler = async (req, res, next) => {
           refresh_token,
           TokenConfig.refreshTokenSecret as string
         ) as IJWTPayload;
+        const { userId } = decoded;
 
-        if (accessTokenDecoded.userId != decoded.userId)
-          return next(createHttpError.Forbidden());
+        // check token in blacklist
+        const refreshToken = await RefreshToken.findOne({
+          where: { userId: decoded.userId },
+        });
 
-        const membersOfProject = await project.getUsers();
+        if (refreshToken?.token != cookies.refresh_token) {
+          if (!isPublic) {
+            return next(createHttpError.Forbidden());
+          } else {
+            response.isAuthor = false;
+            response.isMember = false;
+            response.project = project;
 
-        const memberIdsOfProject = membersOfProject.map(
-          (member) => member.toJSON().id
-        );
+            return successfulResponse(res, { data: response });
+          }
+        }
 
-        if (!memberIdsOfProject.includes(decoded.userId))
-          return next(createHttpError.Forbidden());
+        // authorized user
+        if (projectMembers.includes(userId)) {
+          response.isMember = true;
 
-        return successfulResponse(res, { data: project });
+          if (userId == project.authorId) {
+            response.isAuthor = true;
+          }
+
+          response.project = project;
+
+          return successfulResponse(res, { data: response });
+        } else {
+          if (!isPublic) {
+            return next(createHttpError.Forbidden());
+          } else {
+            response.isAuthor = false;
+            response.isMember = false;
+            response.project = project;
+
+            return successfulResponse(res, { data: response });
+          }
+        }
       } catch (error) {
-        return next(createHttpError.Forbidden());
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name == "TokenExpiredError")
-          return next(createHttpError.Unauthorized(error.name));
+        if (!isPublic) {
+          return next(createHttpError.Forbidden());
+        } else {
+          response.isAuthor = false;
+          response.isMember = false;
+          response.project = project;
 
-        return next(createHttpError.Forbidden());
+          return successfulResponse(res, { data: response });
+        }
       }
     }
   } catch (error) {
-    console.log(error);
-
     return next(createHttpError.InternalServerError());
   }
 };
@@ -142,6 +374,48 @@ export const deleteOne: RequestHandler = async (
 
     return successfulResponse(res, { message: "Project deleted" });
   } catch (error) {
+    return next(createHttpError.InternalServerError());
+  }
+};
+
+// add members to project
+export const addMember: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { id } = req.params;
+  const { userId } = req;
+  const { username } = req.body;
+
+  if (!username)
+    return next(createHttpError.UnprocessableEntity("Username is required"));
+
+  try {
+    const project = await Project.findByPk(id);
+
+    if (!project) return next(createHttpError.NotFound("Project not found"));
+
+    const authorId = project.authorId;
+
+    if (authorId !== userId) return next(createHttpError.Unauthorized());
+
+    const user = await User.findOne({
+      where: { username },
+      attributes: ["username", "name", "id"],
+    });
+
+    if (!user) return next(createHttpError.NotFound("No user found"));
+
+    await project.addUser(user.id);
+
+    return successfulResponse(res, {
+      message: "User added to this project",
+      data: user,
+    });
+  } catch (error) {
+    console.log(error);
+
     return next(createHttpError.InternalServerError());
   }
 };

@@ -16,7 +16,7 @@ connection
 
 // syncing tables
 // connection
-//   .sync({ alter: true, force: true })
+//   .sync({ alter: true, force: false })
 //   .then(() => console.log("Tables synced"))
 //   .catch((err) => console.log("Cannot sync tables", err));
 

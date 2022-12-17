@@ -27,7 +27,6 @@ const auth: RequestHandler = async (req: IRequestWithUser, res, next) => {
   } catch (error) {
     if (error instanceof Error) {
       if (error.name == "TokenExpiredError") {
-        // return next(createHttpError.Unauthorized(error.name));
         // verify refresh token
         try {
           const decoded = jwt.verify(
