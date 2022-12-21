@@ -1,5 +1,6 @@
 import {
   BelongsToManyAddAssociationMixin,
+  BelongsToManyRemoveAssociationMixin,
   HasManyGetAssociationsMixin,
 } from "sequelize";
 import { BelongsToManyGetAssociationsMixin } from "sequelize";
@@ -27,6 +28,7 @@ class Project extends Model<
   declare addUser: BelongsToManyAddAssociationMixin<User, string>;
   declare getUsers: BelongsToManyGetAssociationsMixin<User>;
   declare getSnippets: HasManyGetAssociationsMixin<Snippet>;
+  declare removeUser: BelongsToManyRemoveAssociationMixin<User, string>;
 }
 
 Project.init(

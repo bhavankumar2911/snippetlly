@@ -1,5 +1,5 @@
-import { PlusOutlined } from "@ant-design/icons";
-import { Button, Input, List, message, Space, Typography } from "antd";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Input, List, message, Space, Tag, Typography } from "antd";
 import { useRouter } from "next/router";
 import React, { Dispatch, useState } from "react";
 import API from "../../helpers/API";
@@ -33,23 +33,25 @@ const Members: React.FC<Props> = ({ project, isAuthor, setProject, id }) => {
       notAuthorized,
     } = await API.sendRequest("post", `/project/${id}`, true, { username });
 
+    console.log("data------", data);
+    console.log("inserted data", {
+      ...project,
+      project: {
+        ...project.project,
+        Users: [{ ...data }, ...project.project.Users],
+      },
+    });
+
     setAddingUser(false);
 
     if (responseOK) {
       message.success(resMessage);
-      console.log({
-        ...project,
-        project: {
-          ...project.project,
-          Users: [{ ...data, ...project.project.Users }],
-        },
-      });
 
       setProject({
         ...project,
         project: {
           ...project.project,
-          Users: [...project.project.Users, { ...data }],
+          Users: [{ ...data }, ...project.project.Users],
         },
       });
       setUsername("");
@@ -59,8 +61,43 @@ const Members: React.FC<Props> = ({ project, isAuthor, setProject, id }) => {
     else message.error(resMessage);
   };
 
+  const removeUser = async (username: string) => {
+    const {
+      responseOK,
+      noResponse,
+      notAuthorized,
+      message: resMessage,
+    } = await API.sendRequest("post", `/project/remove-member/${id}`, true, {
+      username,
+    });
+
+    if (responseOK) {
+      message.success(resMessage);
+
+      setProject({
+        ...project,
+        project: {
+          ...project.project,
+          Users: [
+            ...project.project.Users.filter(
+              (user: { username: string }) => user.username != username
+            ),
+          ],
+        },
+      });
+    } else if (noResponse) {
+      message.error(resMessage);
+    } else if (notAuthorized) router.push("/login");
+    else message.error(resMessage);
+  };
+
   return (
     <section>
+      <center>
+        <Typography.Title style={{ marginTop: "3rem" }}>
+          {project.project.name}
+        </Typography.Title>
+      </center>
       <Container>
         <Typography.Title level={2}>Members</Typography.Title>
 
@@ -114,11 +151,30 @@ const Members: React.FC<Props> = ({ project, isAuthor, setProject, id }) => {
             renderItem={(member: any) => (
               <List.Item>
                 <Space direction="vertical" size="small">
-                  <Typography.Text>{member.name}</Typography.Text>
+                  <Typography.Text>
+                    {member.name}
+                    {member.id == project.project.authorId ? (
+                      <Tag color="green" style={{ marginLeft: "0.5rem" }}>
+                        Owner
+                      </Tag>
+                    ) : (
+                      ""
+                    )}
+                  </Typography.Text>
                   <Typography.Text type="secondary">
                     <small>@{member.username}</small>
                   </Typography.Text>
                 </Space>
+                {isAuthor && member.id !== project.project.authorId && (
+                  <Button
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    onClick={() => removeUser(member.username)}
+                    danger
+                  >
+                    Remove
+                  </Button>
+                )}
               </List.Item>
             )}
           />

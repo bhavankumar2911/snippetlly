@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import API from "../../helpers/API";
 import Oops from "../../components/helpers/Oops";
 import { Layout, Menu, MenuProps, Typography } from "antd";
-import { CodeOutlined, UserOutlined } from "@ant-design/icons";
+import { CodeOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import CodeSnippets from "../../components/project/CodeSnippets";
 import Members from "../../components/project/Members";
 import FullPageLoader from "../../components/helpers/FullPageLoader";
@@ -14,6 +14,18 @@ const Project: React.FC = () => {
   const [project, setProject] = useState<any>(null);
   const [navComponent, setNavComponent] = useState("members");
   const [loading, setLoading] = useState(true);
+  const [menu, setMenu] = useState([
+    {
+      key: "snippets",
+      icon: <CodeOutlined />,
+      label: "Code snippets",
+    },
+    {
+      key: "members",
+      icon: <UserOutlined />,
+      label: "Members",
+    },
+  ]);
   const id = router.query.id;
 
   useEffect(() => {
@@ -29,7 +41,16 @@ const Project: React.FC = () => {
 
         if (responseOK) {
           console.log("project", data);
-
+          if (data.isMember) {
+            setMenu([
+              ...menu,
+              {
+                key: "add_snippet",
+                icon: <PlusOutlined />,
+                label: "Add Snippet",
+              },
+            ]);
+          }
           setProject(data);
         } else setError(message);
       })();
@@ -44,7 +65,9 @@ const Project: React.FC = () => {
     <main>
       {/* loading */}
       {loading && <FullPageLoader loadingText="Loading project..." />}
+
       {!loading && error && <Oops message={error} />}
+
       {!loading && !error && project && id && (
         <Layout>
           <Layout.Sider
@@ -55,31 +78,21 @@ const Project: React.FC = () => {
               style={{ border: "none" }}
               onClick={navSelect}
               mode="inline"
-              defaultSelectedKeys={["members"]}
-              items={[
-                {
-                  key: "snippets",
-                  icon: <CodeOutlined />,
-                  label: "Code snippets",
-                },
-                {
-                  key: "members",
-                  icon: <UserOutlined />,
-                  label: "Members",
-                },
-              ]}
+              defaultSelectedKeys={[navComponent]}
+              items={menu}
             />
           </Layout.Sider>
           <Layout.Content>
-            {/* project */}
-            <center>
+            {/* <center>
               <Typography.Title style={{ marginTop: "2rem" }}>
                 {project.project.name}
               </Typography.Title>
-            </center>
+            </center> */}
 
             {/* code snippets */}
-            {navComponent == "snippets" && <CodeSnippets />}
+            {navComponent == "add_snippet" && (
+              <CodeSnippets project={project} setProject={setProject} />
+            )}
 
             {/* members */}
             {navComponent == "members" && (

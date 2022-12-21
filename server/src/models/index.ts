@@ -9,7 +9,7 @@ Project.belongsToMany(User, { through: "UserProject" });
 
 // project-snippet
 Project.hasMany(Snippet);
-Snippet.belongsTo(Project);
+Snippet.belongsTo(Project, { foreignKey: "projectId" });
 
 export default {
   User,

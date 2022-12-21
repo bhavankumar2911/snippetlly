@@ -50,79 +50,6 @@ export const create: RequestHandler = async (
 };
 
 // read a project
-// export const readOne: RequestHandler = async (req, res, next) => {
-//   const { id } = req.params;
-//   // const cookies=req.cookies;
-//   try {
-//     // checking members of the project
-//     // if(!cookies.access_token||!cookies.refresh_token){
-
-//     // }
-//     const project = await models.Project.findOne({
-//       where: { id },
-//       include: [
-//         {
-//           model: User,
-//           attributes: ["id", "email", "name", "username"],
-//         },
-//       ],
-//     });
-
-//     if (!project) return next(createHttpError.NotFound("Project not found"));
-
-//     if (project.isPublic) return successfulResponse(res, { data: project });
-
-//     const cookies = req.cookies;
-//     if (!cookies.access_token || !cookies.refresh_token)
-//       return next(createHttpError.Forbidden());
-
-//     const { access_token, refresh_token } = cookies;
-
-//     try {
-//       const accessTokenDecoded = jwt.verify(
-//         access_token,
-//         TokenConfig.accessTokenSecret as string
-//       ) as IJWTPayload;
-
-//       // verify refresh token
-//       try {
-//         const decoded = jwt.verify(
-//           refresh_token,
-//           TokenConfig.refreshTokenSecret as string
-//         ) as IJWTPayload;
-
-//         if (accessTokenDecoded.userId != decoded.userId)
-//           return next(createHttpError.Forbidden());
-
-//         const membersOfProject = await project.getUsers();
-
-//         const memberIdsOfProject = membersOfProject.map(
-//           (member) => member.toJSON().id
-//         );
-
-//         if (!memberIdsOfProject.includes(decoded.userId))
-//           return next(createHttpError.Forbidden());
-
-//         return successfulResponse(res, { data: project });
-//       } catch (error) {
-//         return next(createHttpError.Forbidden());
-//       }
-//     } catch (error) {
-//       if (error instanceof Error) {
-//         if (error.name == "TokenExpiredError")
-//           return next(createHttpError.Unauthorized(error.name));
-
-//         return next(createHttpError.Forbidden());
-//       }
-//     }
-//   } catch (error) {
-//     console.log(error);
-
-//     return next(createHttpError.InternalServerError());
-//   }
-// };
-
-// read a project
 export const readOne: RequestHandler = async (req, res, next) => {
   const cookies = req.cookies;
   const { id } = req.params;
@@ -145,7 +72,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
     const project = await Project.findByPk(id, {
       include: [
         { model: Snippet },
-        { model: User, attributes: ["username", "name"] },
+        { model: User, attributes: ["username", "name", "id"] },
       ],
     });
 
@@ -412,6 +339,51 @@ export const addMember: RequestHandler = async (
     return successfulResponse(res, {
       message: "User added to this project",
       data: user,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return next(createHttpError.InternalServerError());
+  }
+};
+
+// remove member
+export const removeMember: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { id } = req.params;
+  const { userId } = req;
+  const { username } = req.body;
+
+  if (!username)
+    return next(createHttpError.UnprocessableEntity("Username is required"));
+
+  try {
+    const project = await Project.findByPk(id);
+
+    if (!project) return next(createHttpError.NotFound("Project not found"));
+
+    const authorId = project.authorId;
+
+    if (authorId !== userId) return next(createHttpError.Unauthorized());
+
+    const user = await User.findOne({
+      where: { username },
+      attributes: ["username", "name", "id"],
+    });
+
+    if (!user) return next(createHttpError.NotFound("No user found"));
+
+    if (user.id == authorId)
+      return next(createHttpError.BadRequest("Owner cannot be removed"));
+
+    await project.removeUser(user.id);
+
+    return successfulResponse(res, {
+      message: "User removed from this project",
+      // data: user,
     });
   } catch (error) {
     console.log(error);

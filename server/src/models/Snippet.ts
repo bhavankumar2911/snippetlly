@@ -1,4 +1,4 @@
-import { BelongsToGetAssociationMixin } from "sequelize";
+import { BelongsToGetAssociationMixin, ForeignKey } from "sequelize";
 import {
   CreationOptional,
   InferAttributes,
@@ -18,6 +18,7 @@ class Snippet extends Model<
   declare description: string;
   declare code: string;
   declare language: boolean;
+  declare projectId: ForeignKey<Project["id"]>;
 
   declare getProject: BelongsToGetAssociationMixin<Project>;
 }
