@@ -8,6 +8,7 @@ import {
 } from "sequelize";
 import connection from "../database/connection";
 import Project from "./Project";
+import User from "./User";
 
 class Snippet extends Model<
   InferAttributes<Snippet>,
@@ -18,7 +19,8 @@ class Snippet extends Model<
   declare description: string;
   declare code: string;
   declare language: boolean;
-  declare projectId: ForeignKey<Project["id"]>;
+  declare ProjectId: ForeignKey<Project["id"]>;
+  declare UserId: ForeignKey<User["id"]>;
 
   declare getProject: BelongsToGetAssociationMixin<Project>;
 }

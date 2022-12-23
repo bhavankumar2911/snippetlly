@@ -4,6 +4,7 @@ import connection from "./database/connection";
 import authRouter from "./routes/auth";
 import projectRouter from "./routes/project";
 import userRouter from "./routes/user";
+import snippetRouter from "./routes/snippet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
@@ -16,7 +17,7 @@ connection
 
 // syncing tables
 // connection
-//   .sync({ alter: true, force: false })
+//   .sync({ alter: true })
 //   .then(() => console.log("Tables synced"))
 //   .catch((err) => console.log("Cannot sync tables", err));
 
@@ -39,6 +40,9 @@ app.use("/api/project", projectRouter);
 
 // user routes
 app.use("/api/user", userRouter);
+
+// snippet routes
+app.use("/api/snippet", snippetRouter);
 
 // 404 api request
 app.use((req, res, next) => {

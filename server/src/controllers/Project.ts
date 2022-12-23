@@ -59,12 +59,14 @@ export const readOne: RequestHandler = async (req, res, next) => {
     project: Project | null;
     isAuthor: boolean;
     isMember: boolean;
+    userId: string | null;
   }
 
   const response: Response = {
     project: null,
     isAuthor: false,
     isMember: false,
+    userId: null,
   };
 
   // fetch projects
@@ -168,6 +170,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
               // authorized user
               if (projectMembers.includes(userId)) {
                 response.isMember = true;
+                response.userId = userId;
 
                 if (userId == project.authorId) {
                   response.isAuthor = true;
@@ -242,6 +245,7 @@ export const readOne: RequestHandler = async (req, res, next) => {
         // authorized user
         if (projectMembers.includes(userId)) {
           response.isMember = true;
+          response.userId = userId;
 
           if (userId == project.authorId) {
             response.isAuthor = true;

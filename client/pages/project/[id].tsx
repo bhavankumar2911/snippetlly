@@ -2,17 +2,18 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import API from "../../helpers/API";
 import Oops from "../../components/helpers/Oops";
-import { Layout, Menu, MenuProps, Typography } from "antd";
+import { Layout, Menu, MenuProps } from "antd";
 import { CodeOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
-import CodeSnippets from "../../components/project/CodeSnippets";
+import AddSnippet from "../../components/project/AddSnippet";
 import Members from "../../components/project/Members";
 import FullPageLoader from "../../components/helpers/FullPageLoader";
+import Snippets from "../../components/project/Snippets";
 
 const Project: React.FC = () => {
   const [error, setError] = useState<null | string>(null);
   const router = useRouter();
   const [project, setProject] = useState<any>(null);
-  const [navComponent, setNavComponent] = useState("members");
+  const [navComponent, setNavComponent] = useState("snippets");
   const [loading, setLoading] = useState(true);
   const [menu, setMenu] = useState([
     {
@@ -90,8 +91,13 @@ const Project: React.FC = () => {
             </center> */}
 
             {/* code snippets */}
+            {navComponent == "snippets" && (
+              <Snippets project={project} setProject={setProject} />
+            )}
+
+            {/* add code snippets */}
             {navComponent == "add_snippet" && (
-              <CodeSnippets project={project} setProject={setProject} />
+              <AddSnippet project={project} setProject={setProject} />
             )}
 
             {/* members */}

@@ -31,7 +31,7 @@ export const addSnippetToProject: RequestHandler = async (
     const users = await project.getUsers();
     const memberIds = users.map((user) => user.id);
 
-    if (!memberIds.includes(project.authorId))
+    if (!memberIds.includes(userId as string))
       return next(createHttpError.Forbidden());
 
     const snippet = await Snippet.create({
@@ -39,10 +39,38 @@ export const addSnippetToProject: RequestHandler = async (
       description,
       language,
       code,
-      projectId: project.id,
+      ProjectId: project.id,
+      UserId: userId,
     });
 
     return successfulResponse(res, { message: "Snippet saved", data: snippet });
+  } catch (error) {
+    return next(createHttpError.InternalServerError());
+  }
+};
+
+// delete snippet
+export const deleteSnippet: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { id } = req.params;
+  const { userId } = req;
+
+  try {
+    const snippet = await Snippet.findByPk(id);
+
+    if (!snippet) return next(createHttpError.BadRequest());
+
+    const project = await snippet.getProject();
+
+    if (snippet.UserId != userId || project.authorId != userId)
+      return next(createHttpError.Forbidden());
+
+    await Snippet.destroy({ where: { id } });
+
+    return successfulResponse(res, { message: "Code snippet deleted" });
   } catch (error) {
     return next(createHttpError.InternalServerError());
   }

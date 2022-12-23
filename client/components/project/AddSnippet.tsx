@@ -9,7 +9,7 @@ interface Props {
   setProject: Dispatch<any>;
 }
 
-const CodeSnippet: React.FC<Props> = ({ project, setProject }) => {
+const AddSnippet: React.FC<Props> = ({ project, setProject }) => {
   const [editorLanguage, setEditorLanguage] = useState("javascript");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -164,4 +164,4 @@ const CodeSnippet: React.FC<Props> = ({ project, setProject }) => {
   );
 };
 
-export default CodeSnippet;
+export default AddSnippet;
