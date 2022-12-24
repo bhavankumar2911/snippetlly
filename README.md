@@ -1,5 +1,7 @@
 # Snippetlly
 
+![snippetlly landing page](https://res.cloudinary.com/kreatr-asset-storage/image/upload/v1671882844/Screenshot_2022-12-24_171612_bdpopb.png)
+
 Snippetlly is a **code snippet** storing and managing web app aimed at improving the developers' 👨‍💻 productivity ⏰
 
 This project is a part of my #100daysofcode challenge 🚀. Be connected with me on [![LinkedIn](https://img.shields.io/badge/linkedin-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/bhavan-kumar-v-599562223/) for daily updates on the project 😉
