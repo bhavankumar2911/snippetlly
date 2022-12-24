@@ -16,6 +16,7 @@ import {
 import { TokenConfig } from "../config";
 import IJWTPayload from "../interfaces/IJWTPayload";
 import RefreshToken from "../models/RefreshToken";
+import IRequestWithUser from "../interfaces/IRequestWithUser";
 
 export const signup: RequestHandler = async (req, res, next) => {
   const data = req.body;
@@ -108,8 +109,6 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
   const cookies = req.cookies;
 
   if (!cookies.refresh_token || !cookies.access_token) {
-    console.log("1....");
-
     return next(createHttpError.Unauthorized("You are unauthorized"));
   }
 
@@ -143,8 +142,6 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
           console.log(tokenRecord?.toJSON(), refresh_token);
 
           if (!tokenRecord || tokenRecord.token != refresh_token) {
-            console.log("2...");
-
             return next(createHttpError.Unauthorized("You are unauthorized"));
           }
 
@@ -183,16 +180,31 @@ export const exchangeToken: RequestHandler = async (req, res, next) => {
           });
         } catch (error) {
           if (error instanceof Error) {
-            console.log("3...");
-
             return next(createHttpError.Unauthorized("You are unauthorized"));
           }
         }
       } else {
-        console.log("4...");
-
         return next(createHttpError.Unauthorized("You are unauthorized"));
       }
     }
+  }
+};
+
+export const logout: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { userId } = req;
+
+  res.clearCookie("access_token");
+  res.clearCookie("refresh_token");
+
+  try {
+    await RefreshToken.destroy({ where: { userId } });
+
+    return successfulResponse(res, { message: "Logout successful!" });
+  } catch (error) {
+    return next(createHttpError.InternalServerError());
   }
 };

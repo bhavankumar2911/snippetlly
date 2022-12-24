@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { exchangeToken, login, signup } from "../controllers/auth";
+import { exchangeToken, login, logout, signup } from "../controllers/auth";
 import auth from "../middlewares/auth";
 
 const authRouter = Router();
@@ -15,5 +15,8 @@ authRouter.get("/exchange", exchangeToken);
 
 // check authentication
 authRouter.get("/", auth);
+
+// logout user
+authRouter.get("/logout", auth, logout);
 
 export default authRouter;

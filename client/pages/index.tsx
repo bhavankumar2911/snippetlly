@@ -1,13 +1,13 @@
-import { Button } from "antd";
 import Container from "../components/helpers/Container";
 import Navbar from "../components/helpers/Navbar";
+import Hero from "../components/home/Hero";
 
 export default function Home() {
   return (
-    <main>
-      <Navbar />
+    <main style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
+      <Navbar authenticate={true} />
       <Container>
-        <Button type="primary">Primary Button</Button>
+        <Hero />
       </Container>
     </main>
   );

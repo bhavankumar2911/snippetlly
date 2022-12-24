@@ -8,6 +8,7 @@ import FullPageLoader from "../../components/helpers/FullPageLoader";
 import Oops from "../../components/helpers/Oops";
 import UserInfo from "../../components/profile/UserInfo";
 import Projects from "../../components/profile/Projects";
+import Navbar from "../../components/helpers/Navbar";
 
 const OwnProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ const OwnProfile = () => {
 
   return (
     <ProtectedPage>
+      <Navbar authenticate={false} isAuthenticated={true} />
       <Container>
         <main>
           {/* loading */}
