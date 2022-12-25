@@ -75,3 +75,42 @@ export const deleteSnippet: RequestHandler = async (
     return next(createHttpError.InternalServerError());
   }
 };
+
+export const editSnippet: RequestHandler = async (
+  req: IRequestWithUser,
+  res,
+  next
+) => {
+  const { name, description, language, code } = req.body;
+  const userId = req.userId;
+  const { id } = req.params;
+
+  try {
+    const snippet = await Snippet.findByPk(id);
+
+    if (!snippet) return next(createHttpError.NotFound("Snippet not found"));
+
+    const project = await snippet.getProject();
+
+    if (snippet.UserId != userId || project.authorId != userId)
+      return next(createHttpError.Forbidden());
+
+    if (!name)
+      return next(createHttpError.BadRequest("Snippet name is required"));
+
+    if (!language)
+      return next(createHttpError.BadRequest("Kindly select a language"));
+
+    if (!code)
+      return next(createHttpError.BadRequest("Write some code to save"));
+
+    await Snippet.update(
+      { name, description, language, code },
+      { where: { id } }
+    );
+
+    return successfulResponse(res, { message: "Code snippet updated" });
+  } catch (error) {
+    return next(createHttpError.InternalServerError());
+  }
+};

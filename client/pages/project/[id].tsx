@@ -8,6 +8,7 @@ import AddSnippet from "../../components/project/AddSnippet";
 import Members from "../../components/project/Members";
 import FullPageLoader from "../../components/helpers/FullPageLoader";
 import Snippets from "../../components/project/Snippets";
+import Navbar from "../../components/helpers/Navbar";
 
 const Project: React.FC = () => {
   const [error, setError] = useState<null | string>(null);
@@ -64,6 +65,7 @@ const Project: React.FC = () => {
 
   return (
     <main>
+      <Navbar authenticate={true} />
       {/* loading */}
       {loading && <FullPageLoader loadingText="Loading project..." />}
 
